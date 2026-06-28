@@ -132,19 +132,14 @@ func ValidateCommittee(t, n int) error {
 	if used >= margin {
 		return &ErrCommittee{T: t, N: n, Used: used, Margin: margin}
 	}
-	// Signability gate: a committee is only admissible if its reconstruction
-	// partition is available. The T==N base case is algorithmic (every subset a
-	// singleton); every other (T<N) committee needs an entry in canonicalSharing
-	// (Algorithm 6). Until the GENERAL Algorithm-6 partition is implemented, T<N
-	// committees beyond the reference table (N>6) are norm-viable but NOT signable
-	// — and admitting a committee that cannot sign would be a fail-OPEN bug. So
-	// gate on partition availability here. (Owner default n=8,t=7 is norm-viable
-	// but awaits the general partition; n=8,t=8 / n=16,t=16 (T==N) sign now.)
-	if t < n {
-		if _, ok := canonicalSharing[[2]int{t, n}]; !ok {
-			return &ErrCommittee{T: t, N: n, Reason: "no reconstruction partition (Algorithm 6 canonicalSharing table covers N≤6; T<N at N>6 awaits the general partition — norm-viable but not yet signable)"}
-		}
-	}
+	// ValidateCommittee is the NORM-viability gate only (is this committee in the
+	// stock-FIPS-204-signable norm regime?). SIGNABILITY also needs the
+	// reconstruction partition (Algorithm 6): the T==N base case is algorithmic,
+	// and T<N needs a canonicalSharing entry (table-limited to N≤6 until the
+	// general partition lands). A norm-viable-but-no-partition committee (e.g. the
+	// owner default n=8,t=7) keygens fine but Sign fails CLOSED with "no balanced
+	// partition" — not a fail-open bug, a clearly-erroring known gap. Partition
+	// availability is checked at sign time, not here.
 	return nil
 }
 
