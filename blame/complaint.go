@@ -48,6 +48,28 @@ const (
 	// ReasonMalformedCommit: a dealer's commit vector has wrong length /
 	// dimension. Evidence: the malformed commit bytes.
 	ReasonMalformedCommit Reason = 4
+	// ReasonBadReshare: a malicious party fed an inconsistent re-share into a
+	// BGW secure multiplication — a hash-committed re-share whose N dealt shares
+	// do NOT lie on a degree-(T-1) polynomial (the Reed-Solomon membership test
+	// fails). Evidence: the (commit, nonce, shares, dealerSig) tuple — the
+	// commitment binds the dealer to a specific N-share vector, and any third
+	// party re-runs CheckDegree to confirm it is off-polynomial. Closes CSCP
+	// deviation (a). The scalar math re-check lives in mpc.RecheckReshare; blame
+	// stays scheme-agnostic.
+	ReasonBadReshare Reason = 5
+	// ReasonBadOpening: a malicious party equivocated at a reconstruction — it
+	// signed a commitment to its opening share, then broadcast a DIFFERENT share
+	// (the revealed (share, nonce) does not open the committed digest). Evidence:
+	// the (commit, share, nonce, partySig) tuple. Closes CSCP deviation (c). The
+	// re-check is mpc.RecheckOpening (commitment binding, not RS decoding — RS
+	// error-correction is unsound at N=2T-1 against T-1 malicious parties).
+	ReasonBadOpening Reason = 6
+	// ReasonBadBit: a malicious party contributed a non-{0,1} value as a private
+	// "random bit", skewing a masked value. Evidence: the (commit, nonce, shares,
+	// partySig) tuple committing the party's own bit-sharing; the re-check
+	// mpc.RecheckBit reconstructs the bit b of the DEAD (already-retried)
+	// computation and confirms b·(b-1) != 0 mod q. Closes CSCP deviation (b).
+	ReasonBadBit Reason = 7
 )
 
 // String returns a human-readable reason name.
@@ -61,6 +83,12 @@ func (r Reason) String() string {
 		return "missing"
 	case ReasonMalformedCommit:
 		return "malformed-commit"
+	case ReasonBadReshare:
+		return "bad-reshare"
+	case ReasonBadOpening:
+		return "bad-opening"
+	case ReasonBadBit:
+		return "bad-bit"
 	default:
 		return "unknown"
 	}
@@ -68,13 +96,13 @@ func (r Reason) String() string {
 
 // Errors returned by blame operations.
 var (
-	ErrComplaintForm     = errors.New("dkg/blame: complaint structurally invalid")
-	ErrComplaintSelfAcc  = errors.New("dkg/blame: accuser equals accused")
-	ErrComplaintReason   = errors.New("dkg/blame: complaint reason out of range")
-	ErrComplaintNoSig    = errors.New("dkg/blame: complaint signature missing or invalid")
-	ErrComplaintNoEv     = errors.New("dkg/blame: complaint evidence missing")
-	ErrEvidenceFields    = errors.New("dkg/blame: evidence field count wrong for reason")
-	ErrEvidenceDuplicate = errors.New("dkg/blame: evidence fields equal where they must differ")
+	ErrComplaintForm      = errors.New("dkg/blame: complaint structurally invalid")
+	ErrComplaintSelfAcc   = errors.New("dkg/blame: accuser equals accused")
+	ErrComplaintReason    = errors.New("dkg/blame: complaint reason out of range")
+	ErrComplaintNoSig     = errors.New("dkg/blame: complaint signature missing or invalid")
+	ErrComplaintNoEv      = errors.New("dkg/blame: complaint evidence missing")
+	ErrEvidenceFields     = errors.New("dkg/blame: evidence field count wrong for reason")
+	ErrEvidenceDuplicate  = errors.New("dkg/blame: evidence fields equal where they must differ")
 	ErrInsufficientQuorum = errors.New("dkg/blame: qualified survivors below threshold after exclusion")
 )
 
@@ -88,13 +116,13 @@ const ctxComplaint = channel.CtxComplaint
 // session hash is rejected). Point is the accuser's Shamir evaluation point,
 // needed to re-check a ReasonBadDelivery claim.
 type Complaint struct {
-	Session  [32]byte         // DKG session transcript hash
-	Accused  channel.NodeID   // the misbehaving dealer
-	Accuser  channel.NodeID   // the complainer (signer)
-	Reason   Reason           //
-	Point    uint64           // accuser evaluation point (recipient index + 1)
-	Evidence []byte           // canonical TLV evidence (see evidence.go)
-	Sig      []byte           // ML-DSA-65 over SigningBytes() by Accuser
+	Session  [32]byte       // DKG session transcript hash
+	Accused  channel.NodeID // the misbehaving dealer
+	Accuser  channel.NodeID // the complainer (signer)
+	Reason   Reason         //
+	Point    uint64         // accuser evaluation point (recipient index + 1)
+	Evidence []byte         // canonical TLV evidence (see evidence.go)
+	Sig      []byte         // ML-DSA-65 over SigningBytes() by Accuser
 }
 
 // SigningBytes returns the canonical to-be-signed bytes of a complaint
@@ -134,7 +162,8 @@ func (c *Complaint) VerifyForm() error {
 		return ErrComplaintSelfAcc
 	}
 	switch c.Reason {
-	case ReasonBadDelivery, ReasonEquivocation, ReasonMissing, ReasonMalformedCommit:
+	case ReasonBadDelivery, ReasonEquivocation, ReasonMissing, ReasonMalformedCommit,
+		ReasonBadReshare, ReasonBadOpening, ReasonBadBit:
 	default:
 		return ErrComplaintReason
 	}

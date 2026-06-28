@@ -83,7 +83,7 @@ func (f *Field) LagrangeAtZero(myX Elem, allEvals []Elem) Elem {
 		if xj == myX {
 			continue
 		}
-		num = f.Mul(num, f.Neg(xj))     // ·(-xj)
+		num = f.Mul(num, f.Neg(xj))      // ·(-xj)
 		den = f.Mul(den, f.Sub(myX, xj)) // ·(myX - xj)
 	}
 	return f.Mul(num, f.Inv(den))

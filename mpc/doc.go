@@ -27,24 +27,33 @@
 //     {0,1} bits, and (c) open honestly. The hardening closes all three with
 //     POST-QUANTUM-SOUND mechanisms only:
 //
-//       - committed re-shares (committed.go): every re-share carries a cSHAKE256
-//         hash commitment (binding via collision resistance, full-range safe —
-//         no shortness requirement, unlike a lattice commitment, and no DLog
-//         group, unlike Feldman); a receiver verifies the dealt sharing lies on
-//         a degree-(T−1) polynomial via the honest-majority Reed–Solomon parity
-//         test before use. A degree fault is publicly re-checkable evidence.
+//     - committed re-shares (committed.go): every re-share carries a cSHAKE256
+//     hash commitment (binding via collision resistance, full-range safe —
+//     no shortness requirement, unlike a lattice commitment, and no DLog
+//     group, unlike Feldman). The dealer's OWN committed N-share vector is
+//     checked to be a degree-(T−1) Reed-Solomon codeword (CheckDegree) before
+//     use; this is EXACT for any N ≥ T because it tests one party's own
+//     committed data, not a mixed adversarial set. A degree fault is
+//     publicly re-checkable evidence (ReshareFault → ReasonBadReshare).
 //
-//       - checked openings (openshare.go): every opening share is signed
-//         (ML-DSA-65) against its commitment; reconstruction over all N shares
-//         runs Reed–Solomon error DETECTION, which at N ≥ 2T−1 with ≤ T−1
-//         corruptions uniquely identifies any share off the honest-majority
-//         polynomial — naming the equivocating party.
+//     - checked openings (openshare.go): a reconstruction is preceded by a
+//     commit-then-open round — each party signs a commitment to its opening
+//     share BEFORE any is revealed. A party whose revealed (share, nonce)
+//     does not open its committed digest is named directly by the BINDING
+//     (OpeningFault → ReasonBadOpening). Identification rests on commitment
+//     binding, NOT Reed-Solomon error-correction: at N = 2T−1 a coalition of
+//     T−1 can present a fake degree-(T−1) polynomial agreeing with 2(T−1) ≥ T
+//     shares, out-voting the honest T, so RS decoding cannot identify the
+//     honest value — it can only DETECT a non-codeword. Detection (CheckDegree
+//     on the bound shares) flags an upstream-malformed committed re-share,
+//     which then reduces to the committed.go degree fault.
 //
-//       - batched bit validity (bitcheck.go): each contributed random bit b is
-//         proven b·(b−1)=0 by one secure multiplication; a random linear
-//         combination of the products is opened ONCE and asserted zero (a single
-//         non-bit survives with probability 1/q), with a per-party complaint
-//         round to attribute.
+//     - batched bit validity (bitcheck.go): each contributed random bit b is
+//     proven b·(b−1)=0 by one committed secure multiplication; a Fiat-Shamir
+//     random linear combination of the products (challenge bound to the bit
+//     commitments) is opened ONCE and asserted zero (a single non-bit
+//     survives with probability 1/q), with a per-party drill-down to
+//     attribute (BitFault → ReasonBadBit).
 //
 //     Every detected deviation becomes a blame.Complaint (blame_bridge.go) the
 //     SAME identifiable-abort machinery as a DKG bad-delivery adjudicates.

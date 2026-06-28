@@ -25,14 +25,23 @@ const (
 	equivocationFields = 4 // (commit1, commit2, sig1, sig2)
 	malformedFields    = 1 // (commits)
 	missingFields      = 0 // absence is the evidence
+
+	// Phase-2 malicious-MPC reasons. The scalar math re-check is mpc's job; blame
+	// only checks the field count + per-field minimum length (scheme-agnostic).
+	badReshareFields = 4 // (commit, nonce, shares, dealerSig)
+	badOpeningFields = 4 // (commit, share, nonce, partySig)
+	badBitFields     = 4 // (commit, nonce, shares, partySig)
 )
 
 // Per-field minimum byte lengths (conservative, scheme-agnostic).
 const (
-	shareMin  = 8  // at least one coefficient
+	shareMin  = 8 // at least one coefficient
 	blindMin  = 8
 	commitMin = 8
 	sigMin    = 64 // FIPS-204 minimum across schemes
+	// digestMin is the byte length of a cSHAKE256 commitment digest / nonce as
+	// used by the malicious-MPC reasons (32 bytes).
+	digestMin = 32
 )
 
 // parseFields splits a TLV blob into its payloads. Returns ErrComplaintForm on
@@ -119,6 +128,40 @@ func validateEvidence(reason Reason, blob []byte) error {
 			return ErrComplaintNoEv
 		}
 		return nil
+	case ReasonBadReshare, ReasonBadBit:
+		// (commit[32], nonce[32], shares, partySig). The shares field carries the
+		// committed N-share vector (>= one 8-byte scalar); partySig is FIPS-204.
+		f, err := parseFields(blob)
+		if err != nil {
+			return err
+		}
+		if len(f) != badReshareFields {
+			return ErrEvidenceFields
+		}
+		if len(f[0]) < digestMin || len(f[1]) < digestMin {
+			return ErrComplaintNoEv
+		}
+		if len(f[2]) < shareMin || len(f[3]) < sigMin {
+			return ErrComplaintNoEv
+		}
+		return nil
+	case ReasonBadOpening:
+		// (commit[32], share, nonce[32], partySig). The commitment was signed by
+		// the party; the revealed (share, nonce) does not open it.
+		f, err := parseFields(blob)
+		if err != nil {
+			return err
+		}
+		if len(f) != badOpeningFields {
+			return ErrEvidenceFields
+		}
+		if len(f[0]) < digestMin || len(f[2]) < digestMin {
+			return ErrComplaintNoEv
+		}
+		if len(f[1]) < shareMin || len(f[3]) < sigMin {
+			return ErrComplaintNoEv
+		}
+		return nil
 	default:
 		return ErrComplaintReason
 	}
@@ -155,4 +198,57 @@ func ParseBadDeliveryEvidence(blob []byte) (shareBytes, blindBytes, commitsBytes
 		return nil, nil, nil, ErrEvidenceFields
 	}
 	return f[0], f[1], f[2], nil
+}
+
+// BadReshareEvidence builds the TLV evidence for a ReasonBadReshare complaint:
+// the dealer's hash commitment, the opening nonce, the canonical N-share bytes,
+// and the dealer's signature over the commitment. The mpc re-checker re-hashes
+// the shares (binding) and runs the degree test.
+func BadReshareEvidence(commit, nonce, shares, dealerSig []byte) []byte {
+	return encodeFields(commit, nonce, shares, dealerSig)
+}
+
+// ParseBadReshareEvidence extracts (commit, nonce, shares, dealerSig) for the
+// mpc re-checker. Shared by ReasonBadReshare and ReasonBadBit (same shape).
+func ParseBadReshareEvidence(blob []byte) (commit, nonce, shares, dealerSig []byte, err error) {
+	f, err := parseFields(blob)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	if len(f) != badReshareFields {
+		return nil, nil, nil, nil, ErrEvidenceFields
+	}
+	return f[0], f[1], f[2], f[3], nil
+}
+
+// BadBitEvidence builds the TLV evidence for a ReasonBadBit complaint: the
+// party's commitment to its own bit-sharing, the nonce, the N-share bytes, and
+// the party's signature. Same field shape as ReasonBadReshare.
+func BadBitEvidence(commit, nonce, shares, partySig []byte) []byte {
+	return encodeFields(commit, nonce, shares, partySig)
+}
+
+// ParseBadBitEvidence is ParseBadReshareEvidence under the ReasonBadBit name.
+func ParseBadBitEvidence(blob []byte) (commit, nonce, shares, partySig []byte, err error) {
+	return ParseBadReshareEvidence(blob)
+}
+
+// BadOpeningEvidence builds the TLV evidence for a ReasonBadOpening complaint:
+// the party's signed commitment digest, the revealed share, the revealed nonce,
+// and the party's signature over the commitment. The mpc re-checker confirms the
+// revealed (share, nonce) does NOT open the committed digest.
+func BadOpeningEvidence(commit, share, nonce, partySig []byte) []byte {
+	return encodeFields(commit, share, nonce, partySig)
+}
+
+// ParseBadOpeningEvidence extracts (commit, share, nonce, partySig).
+func ParseBadOpeningEvidence(blob []byte) (commit, share, nonce, partySig []byte, err error) {
+	f, err := parseFields(blob)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	if len(f) != badOpeningFields {
+		return nil, nil, nil, nil, ErrEvidenceFields
+	}
+	return f[0], f[1], f[2], f[3], nil
 }
