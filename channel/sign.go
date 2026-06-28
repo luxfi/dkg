@@ -21,6 +21,10 @@ const (
 	CtxBroadcast = "LUX-DKG-BROADCAST-V1"
 	// CtxComplaint authenticates a blame complaint.
 	CtxComplaint = "LUX-DKG-COMPLAINT-V1"
+	// CtxNonce authenticates a nonce-ticket lifecycle event (issue / consume),
+	// binding it to its replay-bound (epoch, committee, policy, digest) id so a
+	// ticket minted for one signing context never validates for another.
+	CtxNonce = "LUX-DKG-NONCE-V1"
 )
 
 // Sign produces an ML-DSA-65 signature over msg under ctx using the party's
