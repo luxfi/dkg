@@ -74,7 +74,10 @@ func RSSRecover(active []int, t, n int) ([][]uint64, error) {
 
 	sharing, ok := canonicalSharing[[2]int{t, n}]
 	if !ok {
-		return nil, fmt.Errorf("rss: no balanced partition for (T=%d, N=%d)", t, n)
+		// No hardcoded reference entry (N > 6): compute the general Algorithm-6
+		// balanced partition directly over the actual active set. The table is
+		// kept only as a fast path and a cross-check oracle for N ≤ 6.
+		return balancedPartition(active, t, n)
 	}
 
 	// Build the permutation φ: canonical index → actual party id. Active signers
@@ -111,4 +114,185 @@ func RSSRecover(active []int, t, n int) ([][]uint64, error) {
 		out[j] = translated
 	}
 	return out, nil
+}
+
+// balancedPartition is the GENERAL Algorithm-6 (ePrint 2026/013, RSSRecover)
+// balanced partition for an arbitrary active signer set and any admissible
+// (T, N) — including N beyond the hardcoded canonicalSharing table. It is the
+// algorithmic generalisation that unblocks the fault-tolerant default committees
+// n=8,t=7 and n=16,t=14 (and every other norm-viable T<N at N>6).
+//
+// Why a partition always exists. For an active set A (|A| = T) every M-subset S
+// (M = N−T+1) intersects A in at least M + T − N = 1 party: S has M elements and
+// the inactive set has only N − T = M − 1, so by pigeonhole S cannot fit inside
+// the inactive parties and must contain ≥ 1 active signer. Each subset is
+// therefore always assignable to some member of S ∩ A.
+//
+// Why max-flow (not greedy). A balanced partition minimises the MAXIMUM number
+// of subsets any one signer is assigned — the per-signer work of a no-reconstruct
+// aggregation. A least-loaded greedy is only a heuristic: on the owner default
+// n=8,t=7 it lands max-load 6 against the optimum 4 (a 50% overload), because the
+// eligibility constraint (a subset can only go to a member) makes naive greedy
+// systematically pile load onto a few signers. We instead solve the exact problem
+// — minimise max signer load subject to "each subset → one of its members" — as a
+// degree-constrained bipartite assignment. The optimum L* is the least cap for
+// which a feasible assignment exists; feasibility at a cap is a max-flow with
+// source→subset (cap 1), subset→eligible-signer (cap 1), signer→sink (cap L).
+// L is scanned upward from the information-theoretic floor ⌈C/T⌉ (L* equals that
+// floor for every committee measured), so this is Algorithm 6's optimal partition,
+// not an approximation.
+//
+// Determinism. The flow graph is built in a fixed layout (subsets in
+// EnumerateSubsets order, signers in active order) and augmented by FIFO-BFS
+// (Edmonds–Karp), so the partition is a pure function of (active, T, N): every
+// honest signer and any auditor recompute the identical one — essential because a
+// reconstruction or aggregation must sum each subset's short secret exactly once.
+//
+// Preconditions (guaranteed by RSSRecover, which validates before delegating;
+// balancedPartition is unexported): active is sorted, duplicate-free, every id in
+// [0, N), and len(active) == T. Returns a slice of length T; element j lists the
+// subset bitmasks assigned to active[j], each of which contains active[j]. The
+// union over all j is exactly EnumerateSubsets(t, n), each subset appearing once.
+func balancedPartition(active []int, t, n int) ([][]uint64, error) {
+	subsets := EnumerateSubsets(t, n)
+	c := len(subsets)
+	out := make([][]uint64, t)
+	if c == 0 {
+		return out, nil // no subsets (only for a non-admissible committee, rejected upstream)
+	}
+	slot := make(map[int]int, t) // party id → its index j in active
+	for j, id := range active {
+		slot[id] = j
+	}
+	// eligible[i] = the active-signer slots that may hold subset i (its members).
+	eligible := make([][]int, c)
+	for i, mask := range subsets {
+		for _, id := range active { // active ascending → eligible slots ascending
+			if mask&(uint64(1)<<uint(id)) != 0 {
+				eligible[i] = append(eligible[i], slot[id])
+			}
+		}
+		if len(eligible[i]) == 0 {
+			// Unreachable for an admissible committee (pigeonhole); fail closed.
+			return nil, fmt.Errorf("rss: subset 0b%b has no active member in %v", mask, active)
+		}
+	}
+	// Scan the per-signer cap upward from the floor ⌈C/T⌉ to the first feasible L*.
+	// Feasibility is monotone in L and is guaranteed by L = max subsets-per-signer
+	// = SharesPerParty (the all-eligible assignment), so the scan always halts.
+	floor := (c + t - 1) / t
+	ceilCap := SharesPerParty(t, n)
+	if ceilCap < floor {
+		ceilCap = floor
+	}
+	for cap := floor; cap <= ceilCap; cap++ {
+		if assign, ok := maxflowAssign(eligible, t, cap); ok {
+			for i, mask := range subsets {
+				j := assign[i]
+				out[j] = append(out[j], mask)
+			}
+			return out, nil
+		}
+	}
+	// Unreachable: feasibility holds by cap = SharesPerParty. Fail closed.
+	return nil, fmt.Errorf("rss: no balanced partition found for (T=%d, N=%d) active=%v", t, n, active)
+}
+
+// maxflowAssign assigns every subset to exactly one eligible signer such that no
+// signer receives more than capPerSigner subsets, or reports infeasibility at that
+// cap. eligible[i] is the set of signer slots that may hold subset i. On success
+// it returns assign with assign[i] = the signer slot holding subset i.
+//
+// It is a textbook Edmonds–Karp max-flow on the bipartite assignment network
+// (source → subset, cap 1; subset → each eligible signer, cap 1; signer → sink,
+// cap capPerSigner). Full flow C ⟺ a feasible assignment exists. The build order
+// and BFS make the recovered assignment deterministic. Sizes are small (C ≤ 1336
+// by the norm bound, T ≤ 62), so EK is comfortably fast.
+func maxflowAssign(eligible [][]int, t, capPerSigner int) ([]int, bool) {
+	c := len(eligible)
+	const srcOffset = 1 // node 0 = source; subsets 1..c; signers c+1..c+t; sink last
+	source := 0
+	signer := func(j int) int { return c + 1 + j }
+	sink := c + t + 1
+	numNodes := c + t + 2
+
+	// Edge list with paired forward/residual edges (forward at even index, its
+	// residual at the XOR-1 odd index) for O(1) reverse lookup.
+	type edge struct{ to, cap, flow int }
+	edges := make([]edge, 0, 2*(c+c*t+t))
+	adj := make([][]int, numNodes)
+	addEdge := func(u, v, cp int) {
+		adj[u] = append(adj[u], len(edges))
+		edges = append(edges, edge{to: v, cap: cp})
+		adj[v] = append(adj[v], len(edges))
+		edges = append(edges, edge{to: u, cap: 0})
+	}
+	for i := 0; i < c; i++ {
+		addEdge(source, srcOffset+i, 1)
+		for _, j := range eligible[i] {
+			addEdge(srcOffset+i, signer(j), 1)
+		}
+	}
+	for j := 0; j < t; j++ {
+		addEdge(signer(j), sink, capPerSigner)
+	}
+
+	flow := 0
+	for {
+		parentEdge := make([]int, numNodes)
+		for i := range parentEdge {
+			parentEdge[i] = -1
+		}
+		parentEdge[source] = -2
+		queue := []int{source}
+		for len(queue) > 0 && parentEdge[sink] == -1 {
+			u := queue[0]
+			queue = queue[1:]
+			for _, ei := range adj[u] {
+				e := edges[ei]
+				if parentEdge[e.to] == -1 && e.cap-e.flow > 0 {
+					parentEdge[e.to] = ei
+					queue = append(queue, e.to)
+				}
+			}
+		}
+		if parentEdge[sink] == -1 {
+			break // no augmenting path
+		}
+		// Augment by the bottleneck along the path (1 on the subset edges).
+		bottleneck := int(^uint(0) >> 1)
+		for v := sink; v != source; {
+			ei := parentEdge[v]
+			if r := edges[ei].cap - edges[ei].flow; r < bottleneck {
+				bottleneck = r
+			}
+			v = edges[ei^1].to
+		}
+		for v := sink; v != source; {
+			ei := parentEdge[v]
+			edges[ei].flow += bottleneck
+			edges[ei^1].flow -= bottleneck
+			v = edges[ei^1].to
+		}
+		flow += bottleneck
+	}
+	if flow != c {
+		return nil, false
+	}
+	// Recover: each subset's saturated forward edge points to its signer.
+	assign := make([]int, c)
+	for i := 0; i < c; i++ {
+		assign[i] = -1
+		for _, ei := range adj[srcOffset+i] {
+			e := edges[ei]
+			if e.to >= signer(0) && e.to <= signer(t-1) && e.cap == 1 && e.flow == 1 {
+				assign[i] = e.to - signer(0)
+				break
+			}
+		}
+		if assign[i] == -1 {
+			return nil, false // unreachable when flow == c
+		}
+	}
+	return assign, true
 }
