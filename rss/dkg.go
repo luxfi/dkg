@@ -153,7 +153,8 @@ func subsetCommit(prof *ring.Profile, ss *SubsetSecret) ring.Vector {
 // self-consistent — the key is genuine for THAT A — it simply is not bound to a
 // FIPS-204 ExpandA(rho).
 //
-// Fail-closed on any committee outside 2 ≤ T ≤ N ≤ MaxParties.
+// Fail-closed on any committee that fails the per-(N,T) norm bound
+// (ValidateCommittee): 2 ≤ T ≤ N ≤ MaxBitmaskParties and τ·C(N,N−T+1)·η < γ2.
 func Generate(prof *ring.Profile, t, n int, partySeeds [][]byte) (*Keys, error) {
 	if err := ValidateCommittee(t, n); err != nil {
 		return nil, err

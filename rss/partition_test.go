@@ -13,7 +13,7 @@ import (
 // assigned subsets equals exactly the full subset list, with no duplicates,
 // and each signer belongs to every subset it is assigned.
 func TestRSSRecoverCoversAllSubsetsOnce(t *testing.T) {
-	for n := 2; n <= MaxParties; n++ {
+	for n := 2; n <= referenceMaxN; n++ {
 		for tt := 2; tt <= n; tt++ {
 			full := EnumerateSubsets(tt, n)
 			wantSet := map[uint64]bool{}
@@ -66,8 +66,11 @@ func TestRSSRecoverRejectsBadActiveSets(t *testing.T) {
 	if _, err := RSSRecover([]int{0}, 2, 3); err == nil {
 		t.Fatal("wrong-length active set accepted")
 	}
-	if _, err := RSSRecover([]int{0, 1, 2}, 2, 7); err == nil {
-		t.Fatal("N>MaxParties accepted")
+	if _, err := RSSRecover([]int{0, 1, 2}, 2, 64); err == nil {
+		t.Fatal("N>MaxBitmaskParties accepted")
+	}
+	if _, err := RSSRecover([]int{0, 1, 2, 3, 4}, 12, 16); err == nil {
+		t.Fatal("norm-budget-blown committee accepted")
 	}
 }
 

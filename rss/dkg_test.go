@@ -65,7 +65,7 @@ func TestGenerateAllCommittees(t *testing.T) {
 	eta := prof.Eta
 	q := r.Q()
 
-	for n := 2; n <= MaxParties; n++ {
+	for n := 2; n <= referenceMaxN; n++ {
 		for tt := 2; tt <= n; tt++ {
 			keys, err := Generate(prof, tt, n, seeds(n))
 			if err != nil {
@@ -164,7 +164,8 @@ func TestGenerateDeterministic(t *testing.T) {
 
 func TestGenerateRejectsBadCommittee(t *testing.T) {
 	prof := mldsaProfile(t)
-	for _, tn := range [][2]int{{1, 2}, {3, 2}, {2, 7}, {7, 7}} {
+	// {1,2} T<2; {3,2} T>N; {12,16} norm-budget blown; {2,64} over bitmask ceiling.
+	for _, tn := range [][2]int{{1, 2}, {3, 2}, {12, 16}, {2, 64}} {
 		if _, err := Generate(prof, tn[0], tn[1], seeds(maxInt(tn[1], 7))); err == nil {
 			t.Fatalf("Generate admitted non-viable committee (T=%d,N=%d)", tn[0], tn[1])
 		}

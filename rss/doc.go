@@ -53,16 +53,27 @@
 //
 // # The exact (n, t) viability bound
 //
-// The number of RSS subsets C(N, N−T+1) grows combinatorially, and the local
-// rejection-sampling acceptance rate decays with the committee, so Mithril is
-// viable only for SMALL committees:
+// The reconstructed secret is the plain sum of C(N, N−T+1) fresh χ_η short
+// secrets, so ‖s2‖∞ ≤ C(N,N−T+1)·η and the signer's hint term is bounded by
+// ‖c·s2‖∞ ≤ τ·C(N,N−T+1)·η (the challenge c has τ ±1 coefficients). ML-DSA-65
+// can find a hint — i.e. a byte-stock-FIPS-204 signature exists — only while
+// that term stays inside ONE rounding bucket of width γ2 = (q−1)/32 = 261888.
+// Hence the admission test (ValidateCommittee) is the per-(N,T) inequality
 //
-//	2 ≤ T ≤ N ≤ MaxParties   with   MaxParties = 6.
+//	τ · C(N, N−T+1) · η  <  γ2 ,   with  τ=49, η=4, γ2=261888  (ML-DSA-65).
+//
+// This is NOT a flat N cap; it admits or rejects each (N,T) on its own merits.
+// Worked numbers: n=8,t=7 → τCη=5 488 (48× under γ2, viable); n=8,t=8 → 1 568;
+// n=16,t=14 → 109 760 (2.4× under γ2, tight but viable); n=16,t=12 → 856 128
+// (> γ2 — hint budget blown, correctly rejected). The closer τCη is to γ2 the
+// more signing attempts the r0 = w0 − c·s2 rejection costs — a benchmark
+// concern, not a hard reject (see HintBudgetUsage).
 //
 // This is sound for Pulsar because the Avalanche/Snow consensus carries the
-// broad N>1000 economic security by repeated subsampling; the Pulsar signing
+// broad N>1000 economic security by repeated subsampling; a Pulsar signing
 // committee only emits compact post-quantum EVIDENCE of an already-finalized
-// digest (consensus quorum ≠ signing committee — see the Pulsar-M committee
-// architecture). The maximum subset count over the admissible range is
-// C(6,3) = 20 at (T=4, N=6).
+// digest, and the sampled-certificate layer accumulates PQ confidence over r
+// independent committees (Pr[capture]^r), so each committee can stay small
+// (consensus quorum ≠ signing committee — see the Pulsar sampled-cert
+// architecture).
 package rss
