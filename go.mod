@@ -3,8 +3,10 @@ module github.com/luxfi/dkg
 go 1.26.4
 
 require (
+	github.com/cloudflare/circl v1.6.3
 	github.com/luxfi/lattice/v7 v7.1.0
 	github.com/zeebo/blake3 v0.2.4
+	golang.org/x/crypto v0.52.0
 )
 
 require (
@@ -15,7 +17,6 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
-	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
