@@ -126,6 +126,7 @@ func MLDSA65() (*Profile, error) {
 		Ring: r,
 		K:    mldsaK,
 		L:    mldsaL,
+		Eta:  mldsaEta,
 		A:    a,
 		B:    b,
 		SampleSecretVec: func(prng PRNG) Vector {

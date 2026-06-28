@@ -27,6 +27,12 @@ type Profile struct {
 	K    int // commit / module rows (corona 8, ml-dsa 6)
 	L    int // secret / share cols  (corona 7, ml-dsa 5)
 
+	// Eta is the χ_η coefficient bound for uniform-η secret schemes (ML-DSA
+	// η=4); 0 for Gaussian schemes (Ringtail). The Mithril RSS DKG (rss/) reads
+	// it to sample short subset secrets of the right module shape; the generic
+	// Pedersen-VSS DKG uses SampleSecretVec and ignores it. One place for η.
+	Eta uint64
+
 	// A, B are the public Pedersen matrices, NTT-Montgomery form, K×L. Both
 	// are nothing-up-my-sleeve: every party derives them from public tags, so
 	// there is no trusted setup of the public matrices. (The ML-DSA consumer
