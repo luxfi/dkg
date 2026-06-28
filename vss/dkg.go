@@ -109,9 +109,9 @@ func NewParty(
 // retained in the Party until Reveal().
 type Round1Out struct {
 	DealerIndex int
-	Commits     []ring.Vector              // C_{i,k}, k=0..t-1 (plain-NTT)
-	Commitment  channel.Commitment         // commit-then-reveal binding (phase A)
-	Envelopes   map[int]channel.Envelope   // recipient index → sealed (share ‖ blind)
+	Commits     []ring.Vector            // C_{i,k}, k=0..t-1 (plain-NTT)
+	Commitment  channel.Commitment       // commit-then-reveal binding (phase A)
+	Envelopes   map[int]channel.Envelope // recipient index → sealed (share ‖ blind)
 }
 
 // Round1 samples the secret/blinding polynomials, computes the Pedersen

@@ -11,13 +11,13 @@ import (
 // and carry the expected module shape and modulus.
 func TestProfiles_Construct(t *testing.T) {
 	cases := []struct {
-		name      string
-		build     func() (*Profile, error)
-		wantK     int
-		wantL     int
-		wantQ     uint64
-		wantN     int
-		wantAux   bool // KeyFinalize produces an Aux vector
+		name    string
+		build   func() (*Profile, error)
+		wantK   int
+		wantL   int
+		wantQ   uint64
+		wantN   int
+		wantAux bool // KeyFinalize produces an Aux vector
 	}{
 		{"ringtail", Ringtail, 8, 7, 0x1000000004A01, 256, false},
 		{"mldsa65", MLDSA65, 6, 5, 8380417, 256, true},
@@ -113,7 +113,7 @@ func TestSecretSamplers(t *testing.T) {
 // ML-DSA KeyFinalize would diverge from circl.
 func TestFIPS204Power2Round(t *testing.T) {
 	// Spot residues across the modulus.
-	residues := []uint32{0, 1, 4095, 4096, 8191, 8192, 261888, 523776, fipsQ - 1, fipsQ/2, 1234567}
+	residues := []uint32{0, 1, 4095, 4096, 8191, 8192, 261888, 523776, fipsQ - 1, fipsQ / 2, 1234567}
 	for _, a := range residues {
 		t1, t0pq := power2round(a)
 		// reconstruct: a == t1*2^d + (t0pq - q)  (mod nothing — exact integers)
