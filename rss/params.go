@@ -36,6 +36,17 @@ const MaxBitmaskParties = 63
 // explicit τ·C·η < γ2 inequality below.
 const maxViableSubsets = mldsaGamma2 / (mldsaTau * mldsaEta) // = 1336
 
+// MaxParties is the CONSERVATIVE cap below which EVERY (2 ≤ T ≤ N) committee is
+// both norm-viable AND cheap to rejection-sample (signing stays ≲100 attempts).
+// It is NOT the admission gate — the real per-(N,T) gate is ValidateCommittee,
+// which admits larger HIGH-threshold committees (e.g. the owner default n=8,t=7
+// with C(8,2)=28, and n=16,t=14 with C(16,3)=560 — both ≪ maxViableSubsets) while
+// rejecting low-threshold large-N committees (n=16,t=12, n=64,t=5) whose subset
+// norm blows the FIPS-204 hint budget. Exhaustive tests + conservative policy
+// defaults iterate to MaxParties; the sampled-committee families (n=8,t=7,m=12,r=8)
+// admit via ValidateCommittee directly. See lux_pulsar_sampled_cert.
+const MaxParties = 6
+
 // ErrCommittee is returned for any (T, N) the RSS construction cannot admit. It
 // is fail-closed: an out-of-range or norm-blown committee never silently
 // degrades to a weaker mode. Reason distinguishes the two failure causes so a
