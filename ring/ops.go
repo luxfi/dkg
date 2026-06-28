@@ -58,13 +58,21 @@ func ConvertVecToNTTMont(r *Ring, v Vector) {
 	}
 }
 
-// ConvertVecFromNTT maps each polynomial of v out of the NTT-Montgomery domain
-// back to standard coefficient form in place (IMForm then INTT). This is the
-// canonical corona "ConvertVectorFromNTT" used to materialize the aggregated
-// public commit T in integer coefficient form for KeyFinalize.
+// ConvertVecFromNTT maps each polynomial of v out of the plain-NTT domain back
+// to standard coefficient form in place (INTT). This materializes the aggregated
+// public commit T = Σ_i C_{i,0} in TRUE integer coefficient form for
+// KeyFinalize.
+//
+// CRITICAL — no IMForm. The commits are plain-NTT products N(A·c): a Montgomery
+// matrix times a plain-NTT vector (MulCoeffsMontgomery) already cancels the R
+// factor, so the product is the plain NTT of A·c, and INTT alone recovers A·c.
+// An extra IMForm here would inject a spurious R^{-1}, scaling the group key by
+// 1/R mod q — self-consistent under a same-scaled verifier (which is why a
+// lattice-vs-lattice round-trip test misses it) but WRONG against ground truth.
+// TestMLDSA_RingFidelity_Schoolbook pins this against an independent schoolbook
+// convolution; the FIPS-204 t1 = HighBits(T) requires the TRUE A·s1+B·u.
 func ConvertVecFromNTT(r *Ring, v Vector) {
 	for i := range v {
-		r.IMForm(v[i], v[i])
 		r.INTT(v[i], v[i])
 	}
 }
