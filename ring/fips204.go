@@ -75,7 +75,7 @@ func Power2RoundVec(r *Ring, T Vector) (t1, t0 Vector) {
 	for i := range T {
 		p1 := r.NewPoly()
 		p0 := r.NewPoly()
-		for c := 0; c < n; c++ {
+		for c := range n {
 			h, l := power2round(uint32(T[i].Coeffs[0][c]))
 			p1.Coeffs[0][c] = uint64(h)
 			p0.Coeffs[0][c] = uint64(l)
@@ -93,7 +93,7 @@ func HighBitsVec(r *Ring, T Vector, gamma2 uint32) Vector {
 	n := r.N()
 	for i := range T {
 		p := r.NewPoly()
-		for c := 0; c < n; c++ {
+		for c := range n {
 			h, _ := decompose(uint32(T[i].Coeffs[0][c]), gamma2)
 			p.Coeffs[0][c] = uint64(h)
 		}

@@ -188,9 +188,9 @@ func DeriveUniformMatrix(r *Ring, K, L int, seed []byte) (Matrix, error) {
 	}
 	u := lring.NewUniformSampler(prng, r.r)
 	m := make(Matrix, K)
-	for i := 0; i < K; i++ {
+	for i := range K {
 		m[i] = make([]Poly, L)
-		for j := 0; j < L; j++ {
+		for j := range L {
 			p := u.ReadNew()
 			r.r.NTT(p, p)
 			r.r.MForm(p, p)
@@ -206,7 +206,7 @@ func DeriveUniformMatrix(r *Ring, K, L int, seed []byte) (Matrix, error) {
 func SampleGaussianVec(r *Ring, d int, sigma, bound float64, prng PRNG) Vector {
 	g := lring.NewGaussianSampler(prng, r.r, lring.DiscreteGaussian{Sigma: sigma, Bound: bound}, false)
 	v := make(Vector, d)
-	for i := 0; i < d; i++ {
+	for i := range d {
 		v[i] = g.ReadNew()
 	}
 	return v
@@ -222,9 +222,9 @@ func SampleBoundedUniformVec(r *Ring, d int, eta uint64, prng PRNG) Vector {
 	q := r.Q()
 	span := 2*eta + 1
 	v := make(Vector, d)
-	for i := 0; i < d; i++ {
+	for i := range d {
 		p := r.NewPoly()
-		for c := 0; c < n; c++ {
+		for c := range n {
 			u := uniformBelow(prng, span)
 			// centered value in [-eta, eta]; store as representative in [0,q).
 			if u < eta {

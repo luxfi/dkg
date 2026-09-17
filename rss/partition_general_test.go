@@ -71,7 +71,6 @@ func TestBalancedPartitionOwnerTargets(t *testing.T) {
 		{8, 8},   // T==N base case at N>6 (singletons)
 		{16, 16}, // T==N base case at large N
 	} {
-		c := c
 		full := NumSubsets(c.tt, c.n)
 		opt := ceilDiv(full, c.tt)
 		var sets [][]int

@@ -67,9 +67,9 @@ func (f *Field) reduceWeights(evalPoints []Elem) []Elem {
 // fresh degree-(T-1) sharing of X·Y.
 func (f *Field) recombineReshares(reshares [][]Elem, r []Elem, n int) []Elem {
 	z := make([]Elem, n)
-	for k := 0; k < n; k++ {
+	for k := range n {
 		var acc Elem
-		for i := 0; i < n; i++ {
+		for i := range n {
 			acc = f.Add(acc, f.Mul(r[i], reshares[i][k]))
 		}
 		z[k] = acc
@@ -95,7 +95,7 @@ func (f *Field) MulShares(x, y, evalPoints []Elem, threshold int, rng io.Reader)
 		return nil, ErrNotEnoughParties
 	}
 	reshares := make([][]Elem, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p := f.Mul(x[i], y[i])
 		q, err := f.ShareScalar(p, evalPoints, threshold, rng)
 		if err != nil {
@@ -124,7 +124,7 @@ func (f *Field) SharedRandomBit(evalPoints []Elem, threshold int, partyBits []bo
 		return nil, ErrNotEnoughParties
 	}
 	bitShares := make([][]Elem, n)
-	for h := 0; h < n; h++ {
+	for h := range n {
 		var bit Elem
 		if partyBits[h] {
 			bit = 1

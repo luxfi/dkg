@@ -3,7 +3,10 @@
 
 package mpc
 
-import "io"
+import (
+	"io"
+	"slices"
+)
 
 // shamir.go — degree-(t-1) Shamir secret sharing over GF(q), factored from the
 // pulsar reference shamir_gfq.go / talus_mpc.go. The polynomial is f(x) = secret
@@ -67,8 +70,8 @@ func (f *Field) ShareScalarWithPoly(secret Elem, evalPoints []Elem, threshold in
 // EvalPoly evaluates poly(x) = Σ_k poly[k]·x^k by Horner.
 func (f *Field) EvalPoly(poly []Elem, x Elem) Elem {
 	var acc Elem
-	for k := len(poly) - 1; k >= 0; k-- {
-		acc = f.Add(f.Mul(acc, x), poly[k])
+	for _, p := range slices.Backward(poly) {
+		acc = f.Add(f.Mul(acc, x), p)
 	}
 	return acc
 }

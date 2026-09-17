@@ -128,7 +128,7 @@ func (f *Field) Rand(rng io.Reader) (Elem, error) {
 	nbytes := (f.bitLen + 7) / 8
 	mask := (uint64(1) << uint(f.bitLen)) - 1
 	buf := make([]byte, nbytes)
-	for attempt := 0; attempt < 128; attempt++ {
+	for range 128 {
 		if _, err := io.ReadFull(rng, buf); err != nil {
 			return 0, err
 		}

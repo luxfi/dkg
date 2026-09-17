@@ -144,27 +144,22 @@ func SecureHighBitsVec(profile *ring.Profile, gamma2 uint32, commitShares []ring
 	type coeff struct{ k, j int }
 	total := K * N
 	jobs := make(chan coeff, total)
-	for k := 0; k < K; k++ {
-		for j := 0; j < N; j++ {
+	for k := range K {
+		for j := range N {
 			jobs <- coeff{k, j}
 		}
 	}
 	close(jobs)
 
-	workers := runtime.NumCPU()
-	if workers > total {
-		workers = total
-	}
+	workers := min(runtime.NumCPU(), total)
 	var (
 		mu       sync.Mutex
 		firstErr error
 		firstRes *Result
 		wg       sync.WaitGroup
 	)
-	for w := 0; w < workers; w++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range workers {
+		wg.Go(func() {
 			parts := make([]mpc.Elem, n)
 			for c := range jobs {
 				mu.Lock()
@@ -173,7 +168,7 @@ func SecureHighBitsVec(profile *ring.Profile, gamma2 uint32, commitShares []ring
 				if stop {
 					return
 				}
-				for i := 0; i < n; i++ {
+				for i := range n {
 					parts[i] = commitShares[i][c.k].Coeffs[0][c.j] % mldsaQ
 				}
 				var tag [8]byte
@@ -192,7 +187,7 @@ func SecureHighBitsVec(profile *ring.Profile, gamma2 uint32, commitShares []ring
 				}
 				out[c.k].Coeffs[0][c.j] = uint64(v)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 	if firstErr != nil {

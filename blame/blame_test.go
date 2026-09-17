@@ -16,7 +16,7 @@ func ids(t *testing.T, n int) ([]*channel.IdentityKey, []channel.NodeID, channel
 	keys := make([]*channel.IdentityKey, n)
 	nodes := make([]channel.NodeID, n)
 	entries := make(map[channel.NodeID]*channel.IdentityPublicKey, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		k, err := channel.GenerateIdentity(rand.Reader)
 		if err != nil {
 			t.Fatal(err)

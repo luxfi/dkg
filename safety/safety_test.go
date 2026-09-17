@@ -22,7 +22,7 @@ import (
 func genVSSBadDelivery(t *testing.T, profile *ring.Profile, n, th int, keys []*channel.IdentityKey, nodes []channel.NodeID, dir channel.IdentityDirectory, ctx [32]byte, badDealer int) *vss.VerifyFault {
 	t.Helper()
 	parties := make([]*vss.Party, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p, err := vss.NewParty(profile, nodes[i], keys[i], i, n, th, nodes, dir, ctx)
 		if err != nil {
 			t.Fatal(err)
@@ -30,7 +30,7 @@ func genVSSBadDelivery(t *testing.T, profile *ring.Profile, n, th int, keys []*c
 		parties[i] = p
 	}
 	r1 := make([]*vss.Round1Out, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		out, err := parties[i].Round1(rand.Reader)
 		if err != nil {
 			t.Fatal(err)
@@ -39,7 +39,7 @@ func genVSSBadDelivery(t *testing.T, profile *ring.Profile, n, th int, keys []*c
 	}
 	// Recipient 0 opens every dealer's share; corrupt the badDealer's.
 	inputs := make(map[int]*vss.DealerInput, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		share, blind, err := parties[0].OpenDealerShare(i, r1[i].Envelopes[0])
 		if err != nil {
 			t.Fatal(err)
@@ -88,7 +88,7 @@ func ids(t *testing.T, n int) ([]*channel.IdentityKey, []channel.NodeID, channel
 	keys := make([]*channel.IdentityKey, n)
 	nodes := make([]channel.NodeID, n)
 	entries := make(map[channel.NodeID]*channel.IdentityPublicKey, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		k, err := channel.GenerateIdentity(rand.Reader)
 		if err != nil {
 			t.Fatal(err)
@@ -162,7 +162,7 @@ func TestTheorem_ValueAttack_LivenessFaultAndSafe(t *testing.T) {
 	ys, _ := f.ShareScalar(y, pts, th, rand.Reader)
 
 	deals := make([]*mpc.ReshareDeal, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p := f.Mul(xs[i], ys[i])
 		if i == bad {
 			p = f.Add(p, 7) // WRONG value, but it will be a valid-degree sharing
@@ -275,10 +275,10 @@ func TestHonest_CleanNoLeak(t *testing.T) {
 
 	commitShares := make([]ring.Vector, n)
 	sum := ring.NewVec(prof.Ring, K)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		v := ring.NewVec(prof.Ring, K)
-		for k := 0; k < K; k++ {
-			for j := 0; j < N; j++ {
+		for k := range K {
+			for j := range N {
 				x, _ := f.Rand(rand.Reader)
 				v[k].Coeffs[0][j] = uint64(x)
 				sum[k].Coeffs[0][j] = uint64(f.Add(mpc.Elem(sum[k].Coeffs[0][j]), x))

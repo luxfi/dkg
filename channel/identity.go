@@ -138,7 +138,7 @@ func (d IdentityDirectory) Get(id NodeID) *IdentityPublicKey { return d[id] }
 // nodeIDLess reports whether a < b in byte-lexicographic order. Used to derive
 // canonical, direction-independent orderings (session keys, pair tags).
 func nodeIDLess(a, b NodeID) bool {
-	for i := 0; i < len(a); i++ {
+	for i := range len(a) {
 		if a[i] != b[i] {
 			return a[i] < b[i]
 		}

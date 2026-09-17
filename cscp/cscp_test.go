@@ -35,7 +35,7 @@ func ids(t *testing.T, n int) ([]*channel.IdentityKey, []channel.NodeID, channel
 	keys := make([]*channel.IdentityKey, n)
 	nodes := make([]channel.NodeID, n)
 	entries := make(map[channel.NodeID]*channel.IdentityPublicKey, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		k, err := channel.GenerateIdentity(rand.Reader)
 		if err != nil {
 			t.Fatal(err)
@@ -80,7 +80,7 @@ func splitAdditive(t *testing.T, f *mpc.Field, w mpc.Elem, n int) []mpc.Elem {
 // oracle the secure circuit must realise.
 func TestBoundaryCount_MatchesDecompose_AllResidues(t *testing.T) {
 	const g2 = MLDSAGamma2
-	for w := uint32(0); w < mldsaQ; w++ {
+	for w := range uint32(mldsaQ) {
 		count := 0
 		for k := 1; k <= buckets; k++ {
 			if w > (2*uint32(k)-1)*g2 {
@@ -125,7 +125,7 @@ func TestCircuit_MatchesOracle(t *testing.T) {
 		b := (2*mpc.Elem(k) - 1) * g2
 		ws = append(ws, b-1, b, b+1)
 	}
-	for i := 0; i < 8; i++ { // random residues
+	for range 8 { // random residues
 		v, _ := f.Rand(rand.Reader)
 		ws = append(ws, v)
 	}
@@ -183,10 +183,10 @@ func TestDriver_VectorMatchesOracle(t *testing.T) {
 
 	commitShares := make([]ring.Vector, n)
 	sum := ring.NewVec(prof.Ring, K)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		v := ring.NewVec(prof.Ring, K)
-		for k := 0; k < K; k++ {
-			for j := 0; j < N; j++ {
+		for k := range K {
+			for j := range N {
 				x, _ := f.Rand(rand.Reader)
 				v[k].Coeffs[0][j] = uint64(x)
 				sum[k].Coeffs[0][j] = uint64(f.Add(mpc.Elem(sum[k].Coeffs[0][j]), x))
@@ -201,8 +201,8 @@ func TestDriver_VectorMatchesOracle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SecureHighBitsVec: %v (res=%+v)", err, res)
 	}
-	for k := 0; k < K; k++ {
-		for j := 0; j < N; j++ {
+	for k := range K {
+		for j := range N {
 			if got[k].Coeffs[0][j] != wantVec[k].Coeffs[0][j] {
 				t.Fatalf("driver [%d][%d]: got %d want %d", k, j, got[k].Coeffs[0][j], wantVec[k].Coeffs[0][j])
 			}

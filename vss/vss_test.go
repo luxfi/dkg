@@ -17,7 +17,7 @@ func committee(t *testing.T, n int) ([]*channel.IdentityKey, []channel.NodeID) {
 	t.Helper()
 	ids := make([]*channel.IdentityKey, n)
 	nodes := make([]channel.NodeID, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		id, err := channel.GenerateIdentity(rand.Reader)
 		if err != nil {
 			t.Fatal(err)
@@ -112,7 +112,7 @@ func runCorrect(t *testing.T, profile *ring.Profile, n, tt int) *Result {
 
 	// Reconstruct s1 and u from ANY t shares; check T = A·s1 + B·u.
 	subset := make([]int, tt)
-	for i := 0; i < tt; i++ {
+	for i := range tt {
 		subset[i] = i
 	}
 	s1 := reconstruct(profile.Ring, res.Shares, subset, profile.L)
@@ -126,7 +126,7 @@ func runCorrect(t *testing.T, profile *ring.Profile, n, tt int) *Result {
 	// of the degree-(t-1) sharing).
 	if n > tt {
 		subset2 := make([]int, tt)
-		for i := 0; i < tt; i++ {
+		for i := range tt {
 			subset2[i] = n - 1 - i
 		}
 		s1b := reconstruct(profile.Ring, res.Shares, subset2, profile.L)

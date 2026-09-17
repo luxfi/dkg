@@ -104,7 +104,7 @@ func deriveSubsetSecret(prof *ring.Profile, leaderSeed []byte, mask uint64) (*Su
 	_, _ = h.Write([]byte("rss-subset-v1"))
 	_, _ = h.Write(leaderSeed)
 	var mb [8]byte
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		mb[i] = byte(mask >> (8 * uint(i)))
 	}
 	_, _ = h.Write(mb[:])

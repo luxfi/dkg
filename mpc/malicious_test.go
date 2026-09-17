@@ -17,7 +17,7 @@ func ids(t *testing.T, n int) ([]*channel.IdentityKey, []channel.NodeID, channel
 	keys := make([]*channel.IdentityKey, n)
 	nodes := make([]channel.NodeID, n)
 	entries := make(map[channel.NodeID]*channel.IdentityPublicKey, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		k, err := channel.GenerateIdentity(rand.Reader)
 		if err != nil {
 			t.Fatal(err)
@@ -54,7 +54,7 @@ func TestCheckDegree_ExactMembership(t *testing.T) {
 	if !f.CheckDegree(pts, shares, th) {
 		t.Fatal("honest degree-(t-1) sharing rejected by CheckDegree")
 	}
-	for pos := 0; pos < n; pos++ {
+	for pos := range n {
 		bad := append([]Elem(nil), shares...)
 		bad[pos] = f.Add(bad[pos], 1) // bump one share off the polynomial
 		if f.CheckDegree(pts, bad, th) {
@@ -101,7 +101,7 @@ func TestReshare_DeviationDetectedAndBlamed(t *testing.T) {
 	// non-codeword (still self-consistently committed, as a malicious dealer
 	// would broadcast a commitment to its bad vector).
 	deals := make([]*ReshareDeal, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		d, err := f.DealReshare(Elem(1000+i), pts, th, rand.Reader)
 		if err != nil {
 			t.Fatal(err)
@@ -165,7 +165,7 @@ func TestOpen_EquivocationDetectedAndBlamed(t *testing.T) {
 
 	// Honest commit-then-open: every party commits to its true share.
 	reveals := make([]*OpeningReveal, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r, err := DealOpening(shares[i], rand.Reader)
 		if err != nil {
 			t.Fatal(err)
@@ -217,7 +217,7 @@ func TestBitCheck_NonBitDetectedAndBlamed(t *testing.T) {
 
 	mkBits := func() []*CommittedBit {
 		bits := make([]*CommittedBit, n)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			b, err := f.DealBit(i%2 == 0, pts, th, rand.Reader)
 			if err != nil {
 				t.Fatal(err)

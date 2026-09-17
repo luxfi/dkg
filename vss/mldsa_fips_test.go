@@ -50,9 +50,9 @@ func schoolbookNegacyclic(a, b []uint64, q uint64, n int) []uint64 {
 	for i := range acc {
 		acc[i] = new(big.Int)
 	}
-	for i := 0; i < n; i++ {
+	for i := range n {
 		ai := new(big.Int).SetUint64(a[i])
-		for j := 0; j < n; j++ {
+		for j := range n {
 			prod := new(big.Int).Mul(ai, new(big.Int).SetUint64(b[j]))
 			k := i + j
 			if k < n {
@@ -63,7 +63,7 @@ func schoolbookNegacyclic(a, b []uint64, q uint64, n int) []uint64 {
 		}
 	}
 	out := make([]uint64, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		acc[i].Mod(acc[i], Q) // Euclidean mod → [0,q)
 		out[i] = acc[i].Uint64()
 	}
@@ -109,12 +109,12 @@ func TestMLDSA_RingFidelity_Schoolbook(t *testing.T) {
 				t.Fatal(err)
 			}
 			n := r.N()
-			for iter := 0; iter < 8; iter++ {
+			for iter := range 8 {
 				a := randCoeffs(t, n, tc.q)
 				b := randCoeffs(t, n, tc.q)
 				want := schoolbookNegacyclic(a, b, tc.q, n)
 				got := ringNegacyclic(r, a, b)
-				for c := 0; c < n; c++ {
+				for c := range n {
 					if got[c] != want[c] {
 						t.Fatalf("iter %d coeff %d: ring=%d schoolbook=%d (q=%#x)", iter, c, got[c], want[c], tc.q)
 					}
@@ -142,7 +142,7 @@ func TestMLDSA_KeyFinalize_FIPSIdentity(t *testing.T) {
 	n := p.Ring.N()
 	const d = 13
 	for i := 0; i < p.K; i++ {
-		for c := 0; c < n; c++ {
+		for c := range n {
 			T := int64(gk.T[i].Coeffs[0][c])
 			t1 := int64(gk.Finalized[i].Coeffs[0][c])
 			t0 := int64(gk.Aux[i].Coeffs[0][c]) - 8380417 // lift t0+q back to centered
@@ -196,7 +196,7 @@ func randCoeffs(t *testing.T, n int, q uint64) []uint64 {
 	t.Helper()
 	Q := new(big.Int).SetUint64(q)
 	out := make([]uint64, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		v, err := rand.Int(rand.Reader, Q)
 		if err != nil {
 			t.Fatal(err)

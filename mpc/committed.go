@@ -237,7 +237,7 @@ func (f *Field) MulSharesCommitted(x, y, evalPoints []Elem, threshold int, rng i
 		return nil, nil, ErrNotEnoughParties
 	}
 	deals := make([]*ReshareDeal, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		d, err := f.DealReshare(f.Mul(x[i], y[i]), evalPoints, threshold, rng)
 		if err != nil {
 			return nil, nil, err

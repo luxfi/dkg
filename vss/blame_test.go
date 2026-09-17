@@ -24,7 +24,7 @@ func TestBadDelivery_EndToEnd(t *testing.T) {
 	ctx := [32]byte{0xDE, 0xAD}
 
 	parties := make([]*Party, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p, err := NewParty(profile, nodes[i], ids[i], i, n, tt, nodes, dir, ctx)
 		if err != nil {
 			t.Fatal(err)
@@ -32,7 +32,7 @@ func TestBadDelivery_EndToEnd(t *testing.T) {
 		parties[i] = p
 	}
 	r1 := make([]*Round1Out, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		out, err := parties[i].Round1(rand.Reader)
 		if err != nil {
 			t.Fatal(err)
@@ -44,7 +44,7 @@ func TestBadDelivery_EndToEnd(t *testing.T) {
 	// to model a dealer that delivered a share inconsistent with its commits.
 	recipient := parties[1]
 	inputs := make(map[int]*DealerInput, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		share, blind, err := recipient.OpenDealerShare(i, r1[i].Envelopes[1])
 		if err != nil {
 			t.Fatal(err)
@@ -97,11 +97,11 @@ func TestRecheck_HonestShare_NotJustified(t *testing.T) {
 	ctx := [32]byte{7}
 
 	parties := make([]*Party, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		parties[i], _ = NewParty(profile, nodes[i], ids[i], i, n, tt, nodes, dir, ctx)
 	}
 	r1 := make([]*Round1Out, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r1[i], _ = parties[i].Round1(rand.Reader)
 	}
 	// Honest open of dealer 0's share to recipient 2.
@@ -137,18 +137,18 @@ func TestEquivocationGate(t *testing.T) {
 	ids, nodes := committee(t, n)
 	dir, _ := buildDirectory(ids, nodes)
 	parties := make([]*Party, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		parties[i], _ = NewParty(profile, nodes[i], ids[i], i, n, 2, nodes, dir, [32]byte{})
 	}
 	r1 := make([]*Round1Out, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		r1[i], _ = parties[i].Round1(rand.Reader)
 	}
 	// Honest digest matrix: every recipient sees every dealer's true commits.
 	digests := make(map[int]map[int][32]byte, n)
-	for j := 0; j < n; j++ {
+	for j := range n {
 		row := make(map[int][32]byte, n)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			row[i] = parties[j].CommitDigest(r1[i].Commits)
 		}
 		digests[j] = row

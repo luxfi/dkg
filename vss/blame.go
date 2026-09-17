@@ -83,8 +83,8 @@ func RecheckBadDelivery(profile *ring.Profile, c *blame.Complaint) (bool, error)
 func serializeVec(v ring.Vector, L, n int) []byte {
 	out := make([]byte, L*n*8)
 	off := 0
-	for i := 0; i < L; i++ {
-		for c := 0; c < n; c++ {
+	for i := range L {
+		for c := range n {
 			binary.LittleEndian.PutUint64(out[off:], v[i].Coeffs[0][c])
 			off += 8
 		}
@@ -99,8 +99,8 @@ func deserializeVec(r *ring.Ring, b []byte, L, n int) (ring.Vector, error) {
 	}
 	v := ring.NewVec(r, L)
 	off := 0
-	for i := 0; i < L; i++ {
-		for c := 0; c < n; c++ {
+	for i := range L {
+		for c := range n {
 			v[i].Coeffs[0][c] = binary.LittleEndian.Uint64(b[off:])
 			off += 8
 		}
@@ -120,10 +120,10 @@ func deserializeCommits(r *ring.Ring, b []byte, K, n int) ([]ring.Vector, error)
 		return nil, errShareWire
 	}
 	commits := make([]ring.Vector, t)
-	for k := 0; k < t; k++ {
+	for k := range t {
 		vec := ring.NewVec(r, K)
-		for i := 0; i < K; i++ {
-			for c := 0; c < n; c++ {
+		for i := range K {
+			for c := range n {
 				vec[i].Coeffs[0][c] = binary.LittleEndian.Uint64(b[off:])
 				off += 8
 			}

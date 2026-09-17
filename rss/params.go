@@ -202,7 +202,7 @@ func EnumerateSubsets(t, n int) []uint64 {
 // SubsetMembers expands a subset bitmask into its sorted party indices.
 func SubsetMembers(mask uint64, n int) []int {
 	members := make([]int, 0, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if mask&(uint64(1)<<uint(i)) != 0 {
 			members = append(members, i)
 		}

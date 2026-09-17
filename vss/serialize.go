@@ -30,9 +30,9 @@ func serializeShareBlind(share, blind ring.Vector, L, n int) []byte {
 	out := make([]byte, shareWireLen(L, n))
 	off := 0
 	for _, v := range [2]ring.Vector{share, blind} {
-		for i := 0; i < L; i++ {
+		for i := range L {
 			coeffs := v[i].Coeffs[0]
-			for c := 0; c < n; c++ {
+			for c := range n {
 				binary.LittleEndian.PutUint64(out[off:], coeffs[c])
 				off += 8
 			}
@@ -51,9 +51,9 @@ func deserializeShareBlind(r *ring.Ring, wire []byte, L, n int) (share, blind ri
 	blind = ring.NewVec(r, L)
 	off := 0
 	for _, v := range [2]ring.Vector{share, blind} {
-		for i := 0; i < L; i++ {
+		for i := range L {
 			coeffs := v[i].Coeffs[0]
-			for c := 0; c < n; c++ {
+			for c := range n {
 				coeffs[c] = binary.LittleEndian.Uint64(wire[off:])
 				off += 8
 			}
@@ -71,9 +71,9 @@ func serializeCommits(commits []ring.Vector, K, n int) []byte {
 	binary.BigEndian.PutUint32(b4[:], uint32(len(commits)))
 	out = append(out, b4[:]...)
 	for _, c := range commits {
-		for i := 0; i < K; i++ {
+		for i := range K {
 			coeffs := c[i].Coeffs[0]
-			for k := 0; k < n; k++ {
+			for k := range n {
 				var b8 [8]byte
 				binary.LittleEndian.PutUint64(b8[:], coeffs[k])
 				out = append(out, b8[:]...)

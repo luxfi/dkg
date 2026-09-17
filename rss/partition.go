@@ -89,7 +89,7 @@ func RSSRecover(active []int, t, n int) ([][]uint64, error) {
 	for _, id := range active {
 		activeSet[id] = true
 	}
-	for j := 0; j < n; j++ {
+	for j := range n {
 		if activeSet[j] {
 			perm[i1] = j
 			i1++
@@ -104,7 +104,7 @@ func RSSRecover(active []int, t, n int) ([][]uint64, error) {
 		translated := make([]uint64, len(partyShares))
 		for k, canonicalMask := range partyShares {
 			var actual uint64
-			for bit := 0; bit < n; bit++ {
+			for bit := range n {
 				if canonicalMask&(uint64(1)<<uint(bit)) != 0 {
 					actual |= uint64(1) << uint(perm[bit])
 				}
@@ -181,10 +181,7 @@ func balancedPartition(active []int, t, n int) ([][]uint64, error) {
 	// Feasibility is monotone in L and is guaranteed by L = max subsets-per-signer
 	// = SharesPerParty (the all-eligible assignment), so the scan always halts.
 	floor := (c + t - 1) / t
-	ceilCap := SharesPerParty(t, n)
-	if ceilCap < floor {
-		ceilCap = floor
-	}
+	ceilCap := max(SharesPerParty(t, n), floor)
 	for cap := floor; cap <= ceilCap; cap++ {
 		if assign, ok := maxflowAssign(eligible, t, cap); ok {
 			for i, mask := range subsets {
@@ -227,13 +224,13 @@ func maxflowAssign(eligible [][]int, t, capPerSigner int) ([]int, bool) {
 		adj[v] = append(adj[v], len(edges))
 		edges = append(edges, edge{to: u, cap: 0})
 	}
-	for i := 0; i < c; i++ {
+	for i := range c {
 		addEdge(source, srcOffset+i, 1)
 		for _, j := range eligible[i] {
 			addEdge(srcOffset+i, signer(j), 1)
 		}
 	}
-	for j := 0; j < t; j++ {
+	for j := range t {
 		addEdge(signer(j), sink, capPerSigner)
 	}
 
@@ -281,7 +278,7 @@ func maxflowAssign(eligible [][]int, t, capPerSigner int) ([]int, bool) {
 	}
 	// Recover: each subset's saturated forward edge points to its signer.
 	assign := make([]int, c)
-	for i := 0; i < c; i++ {
+	for i := range c {
 		assign[i] = -1
 		for _, ei := range adj[srcOffset+i] {
 			e := edges[ei]

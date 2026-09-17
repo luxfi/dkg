@@ -3,7 +3,11 @@
 
 package cscp
 
-import "github.com/luxfi/dkg/mpc"
+import (
+	"slices"
+
+	"github.com/luxfi/dkg/mpc"
+)
 
 // circuit.go — the secure HighBits circuit (FIPS-204 Decompose high part) over a
 // degree-(T-1) Shamir sharing, WITHOUT any node forming w, w0, or A0. The bit
@@ -44,9 +48,9 @@ func (s *session) andBit(a, b []mpc.Elem) ([]mpc.Elem, error) { return s.mul(a, 
 func (s *session) bitLTPubShared(x uint32, yBits [][]mpc.Elem) ([]mpc.Elem, error) {
 	lt := s.constShare(0)
 	decided := s.constShare(0)
-	for j := len(yBits) - 1; j >= 0; j-- {
+	for j, yBit := range slices.Backward(yBits) {
 		xj := (x >> uint(j)) & 1
-		diff := s.xorPubBit(xj, yBits[j])
+		diff := s.xorPubBit(xj, yBit)
 		nd, err := s.mul(diff, s.notBit(decided))
 		if err != nil {
 			return nil, err
@@ -63,9 +67,9 @@ func (s *session) bitLTPubShared(x uint32, yBits [][]mpc.Elem) ([]mpc.Elem, erro
 func (s *session) bitLTSharedPub(yBits [][]mpc.Elem, x uint32) ([]mpc.Elem, error) {
 	lt := s.constShare(0)
 	decided := s.constShare(0)
-	for j := len(yBits) - 1; j >= 0; j-- {
+	for j, yBit := range slices.Backward(yBits) {
 		xj := (x >> uint(j)) & 1
-		diff := s.xorPubBit(xj, yBits[j])
+		diff := s.xorPubBit(xj, yBit)
 		nd, err := s.mul(diff, s.notBit(decided))
 		if err != nil {
 			return nil, err
@@ -84,7 +88,7 @@ func (s *session) bitAdd(cPub uint32, rBits [][]mpc.Elem) ([][]mpc.Elem, error) 
 	L := len(rBits)
 	out := make([][]mpc.Elem, L+1)
 	carry := s.constShare(0)
-	for j := 0; j < L; j++ {
+	for j := range L {
 		cj := (cPub >> uint(j)) & 1
 		rj := rBits[j]
 		t1 := s.xorPubBit(cj, rj)
@@ -115,7 +119,7 @@ func (s *session) bitSubBetaQ(sBits [][]mpc.Elem, beta []mpc.Elem, q uint32) ([]
 	L := len(sBits)
 	out := make([][]mpc.Elem, L)
 	borrow := s.constShare(0)
-	for j := 0; j < L; j++ {
+	for j := range L {
 		sj := sBits[j]
 		qj := (q >> uint(j)) & 1
 		if qj == 1 {
@@ -164,10 +168,10 @@ func (s *session) randomBitwise() ([]mpc.Elem, [][]mpc.Elem, error) {
 	const maxRetry = 64
 	L := s.f.BitLen()
 	q := uint32(s.f.Q())
-	for attempt := 0; attempt < maxRetry; attempt++ {
+	for range maxRetry {
 		bits := make([][]mpc.Elem, L)
 		rShare := s.constShare(0)
-		for j := 0; j < L; j++ {
+		for j := range L {
 			bj, err := s.randomSharedBit()
 			if err != nil {
 				return nil, nil, err

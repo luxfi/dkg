@@ -71,7 +71,7 @@ func ringtailFinalize(p *Profile, T Vector) (*GroupPublicKey, error) {
 	bTilde := make(Vector, p.K)
 	for i := range T {
 		out := p.Ring.NewPoly()
-		for c := 0; c < n; c++ {
+		for c := range n {
 			coeff := T[i].Coeffs[0][c]
 			out.Coeffs[0][c] = (coeff + (1 << (ringtailXi - 1))) >> ringtailXi
 		}

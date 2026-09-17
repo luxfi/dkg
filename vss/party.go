@@ -25,7 +25,7 @@ func computeCommits(p *ring.Profile, cCoeffs, rCoeffs []ring.Vector) []ring.Vect
 	r := p.Ring
 	t := len(cCoeffs)
 	commits := make([]ring.Vector, t)
-	for k := 0; k < t; k++ {
+	for k := range t {
 		cNTT := ring.CopyVec(cCoeffs[k])
 		rNTT := ring.CopyVec(rCoeffs[k])
 		ring.NTTVec(r, cNTT)

@@ -1,6 +1,6 @@
 module github.com/luxfi/dkg
 
-go 1.26.4
+go 1.27.1
 
 require (
 	github.com/cloudflare/circl v1.6.3

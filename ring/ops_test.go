@@ -53,10 +53,10 @@ func TestMatVecMul_Schoolbook(t *testing.T) {
 	// Build A in NTT-Mont from random standard polys; keep the standard copies.
 	A := make(Matrix, K)
 	Astd := make([][]Poly, K)
-	for i := 0; i < K; i++ {
+	for i := range K {
 		A[i] = make([]Poly, L)
 		Astd[i] = make([]Poly, L)
-		for j := 0; j < L; j++ {
+		for j := range L {
 			p := r.NewPoly()
 			fillPseudo(p, n, uint64(i*7+j*13+1))
 			Astd[i][j] = *p.CopyNew()
@@ -67,7 +67,7 @@ func TestMatVecMul_Schoolbook(t *testing.T) {
 	}
 	v := NewVec(r, L)
 	vstd := make([]Poly, L)
-	for j := 0; j < L; j++ {
+	for j := range L {
 		fillPseudo(v[j], n, uint64(j*101+5))
 		vstd[j] = *v[j].CopyNew()
 	}
@@ -81,15 +81,15 @@ func TestMatVecMul_Schoolbook(t *testing.T) {
 	ConvertVecFromNTT(r, got)
 
 	// Schoolbook: result[i] = Σ_j Astd[i][j] * vstd[j] (negacyclic).
-	for i := 0; i < K; i++ {
+	for i := range K {
 		want := make([]uint64, n)
-		for j := 0; j < L; j++ {
+		for j := range L {
 			pc := negacyclicMul(Astd[i][j].Coeffs[0], vstd[j].Coeffs[0], r.Q(), n)
-			for c := 0; c < n; c++ {
+			for c := range n {
 				want[c] = (want[c] + pc[c]) % r.Q()
 			}
 		}
-		for c := 0; c < n; c++ {
+		for c := range n {
 			if got[i].Coeffs[0][c] != want[c] {
 				t.Fatalf("row %d coeff %d: got %d want %d", i, c, got[i].Coeffs[0][c], want[c])
 			}
@@ -168,7 +168,7 @@ func TestHighBitsVec(t *testing.T) {
 // fillPseudo fills p with a deterministic pseudo-random-ish pattern mod q.
 func fillPseudo(p Poly, n int, seed uint64) {
 	x := seed | 1
-	for c := 0; c < n; c++ {
+	for c := range n {
 		x = x*6364136223846793005 + 1442695040888963407
 		p.Coeffs[0][c] = x % 8380417
 	}
@@ -177,8 +177,8 @@ func fillPseudo(p Poly, n int, seed uint64) {
 // negacyclicMul is the schoolbook product in Z_q[X]/(X^n+1).
 func negacyclicMul(a, b []uint64, q uint64, n int) []uint64 {
 	c := make([]uint64, n)
-	for i := 0; i < n; i++ {
-		for j := 0; j < n; j++ {
+	for i := range n {
+		for j := range n {
 			prod := (a[i] % q) * (b[j] % q) % q
 			k := i + j
 			if k < n {

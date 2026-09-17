@@ -64,7 +64,7 @@ func RunDKG(
 
 	// Construct parties.
 	parties := make([]*Party, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		p, err := NewParty(profile, nodes[i], identities[i], i, n, t, nodes, dir, context)
 		if err != nil {
 			return nil, err
@@ -74,7 +74,7 @@ func RunDKG(
 
 	// Round 1.
 	r1 := make([]*Round1Out, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		out, err := parties[i].Round1(rng)
 		if err != nil {
 			return nil, fmt.Errorf("party %d Round1: %w", i, err)
@@ -84,7 +84,7 @@ func RunDKG(
 
 	// Commit-then-reveal verification (component 8): every dealer's revealed
 	// commit bytes must match the commitment it broadcast before reveal.
-	for i := 0; i < n; i++ {
+	for i := range n {
 		revealBytes, nonce := parties[i].Reveal()
 		if !channel.VerifyOpening(r1[i].Commitment, channel.Opening{Payload: revealBytes, Nonce: nonce}) {
 			return nil, fmt.Errorf("party %d: commit-then-reveal opening invalid", i)
@@ -95,9 +95,9 @@ func RunDKG(
 	// dealer's commits; in the honest path every recipient sees the same
 	// commits, so all digests agree. DetectEquivocation flags any disagreement.
 	digestsByRecipient := make(map[int]map[int][32]byte, n)
-	for j := 0; j < n; j++ {
+	for j := range n {
 		row := make(map[int][32]byte, n)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			row[i] = parties[j].CommitDigest(r1[i].Commits)
 		}
 		digestsByRecipient[j] = row
@@ -106,7 +106,7 @@ func RunDKG(
 		return nil, fmt.Errorf("%w: dealers %v", ErrEquivocation, bad)
 	}
 	commitDigests := make([][32]byte, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		commitDigests[i] = parties[0].CommitDigest(r1[i].Commits)
 	}
 
@@ -114,9 +114,9 @@ func RunDKG(
 	shares := make(map[int]ring.Vector, n)
 	blindShares := make(map[int]ring.Vector, n)
 	var groupKey *ring.GroupPublicKey
-	for j := 0; j < n; j++ {
+	for j := range n {
 		inputs := make(map[int]*DealerInput, n)
-		for i := 0; i < n; i++ {
+		for i := range n {
 			share, blind, err := parties[j].OpenDealerShare(i, r1[i].Envelopes[j])
 			if err != nil {
 				return nil, fmt.Errorf("party %d open dealer %d: %w", j, i, err)
@@ -141,7 +141,7 @@ func RunDKG(
 	tr := transcript.NewWithDomain(transcript.FuncName, tagTranscript)
 	tr.AppendU32("n", uint32(n)).AppendU32("t", uint32(t))
 	tr.Append("scheme", []byte(profile.Name))
-	for i := 0; i < n; i++ {
+	for i := range n {
 		tr.AppendHash("commit", commitDigests[i])
 	}
 	tr.Append("gpk", groupKey.Encode())
@@ -164,10 +164,10 @@ func RunDKG(
 // the same flagged set (deterministic adjudication, component 5).
 func DetectEquivocation(digestsByRecipient map[int]map[int][32]byte, n int) map[int]bool {
 	bad := make(map[int]bool)
-	for dealer := 0; dealer < n; dealer++ {
+	for dealer := range n {
 		var ref [32]byte
 		haveRef := false
-		for recipient := 0; recipient < n; recipient++ {
+		for recipient := range n {
 			row, ok := digestsByRecipient[recipient]
 			if !ok {
 				continue
